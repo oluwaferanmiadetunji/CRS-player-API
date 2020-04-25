@@ -4,20 +4,6 @@ use Illuminate\Http\Request;
 use App\Models\UserModel;
 use Validator as validator;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
-*/
-// Route::middleware('auth:api')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
-
 Route::get('', function () {
   return response()->json([
     'success' => true,
@@ -27,69 +13,48 @@ Route::get('', function () {
 
 Route::post('login', function (Request $request) {
   $email = $request->email;
-  $user = UserModel::select('device_id', 'password')->where('email', '=', $email)->get();
-  return response()->json([
-    'data' => $user
-  ]);
+  $query = UserModel::where('email', '=', $email);
+  if ($query->count() > 0) {
+    $data = $query->select('device_id', 'password')->first();
+    return response()->json([
+      'success' => true,
+      'data' => $data,
+      'message' => 'Login successful!'
+    ], 200);
+  } else {
+    return response()->json([
+      'success' => false,
+      'message' => 'This email has not been registered'
+    ], 200);
+  }
 });
-// user login
-// Route::post('login', function (Request $request) {
-//   $device_id = $request->device_id;
-//   $email = $request->email;
-//   $password = $request->password;
-//   $questions = UserModel::select('email', 'password', 'server', 'device_id')->where('email', '=', $email)->get();
-//   return response()->json([
-//     'data'->$questions
-//   ]);
-//   if ($query->count() > 0) {
-//   $user_device_id = $query->select('device_id')->first();
-//   $user_password = $query->select('password')->first();
-//   if ($user_device_id != $device_id) {
-//     return response()->json([
-//       'message' => 'Please login with the device you registered with!',
-//       'error' => true
-//     ], 403);
-//   } else {
-//     if ($user_password != $password) {
-//       return response()->json([
-//         'message' => 'Incorrect credentials. Check your details again',
-//         'error' => true
-//       ], 403);
-//     } else {
-//       return response()->json([
-//         'message' => 'Login successful',
-//         'error' => false
-//       ], 200);
-//     }
-//   }
-//   } else {
-//     return response()->json([
-//       'message' => 'User not found',
-//       'error' => true
-//     ], 404);
-//   }
-// });
 
 
 //user registration
 Route::post('register', function (Request $request) {
-  $rules = [
-    'password' => 'required',
-    'email' => 'required|unique:desktop_users',
-    'server' => 'required',
-    'device_id' => 'required|unique:desktop_users',
-  ];
-  $validator = validator::make($request->all(), $rules);
-  if ($validator->fails()) {
+  $email = $request->email;
+  $password = $request->password;
+  $server = $request->server;
+  $device_id = $request->device_id;
+  $query = UserModel::where('email', '=', $email)->first()->get();
+  if ($query->count() > 0) {
     return response()->json([
-      $validator->errors(),
-      'success' => 'false',
-    ], 400);
+      'success' => false,
+      'message' => 'This email has already been registered! Please, use another email address'
+    ], 200);
+  } else {
+    $query = UserModel::where('device_id', '=', $device_id)->get();
+    if ($query->count() > 0) {
+      return response()->json([
+        'success' => false,
+        'message' => 'Error! Please, reload the page and try again'
+      ], 200);
+    } else {
+      $user = UserModel::create($request->all());
+      return response()->json([
+        'success' => true,
+        'message' => 'Registration successful'
+      ], 201);
+    }
   }
-  $user = UserModel::create($request->all());
-  return response()->json([
-    'data' => $user,
-    'success' => true,
-    'message' => 'Successfully registered'
-  ], 201);
 });
